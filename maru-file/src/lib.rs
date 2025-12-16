@@ -102,7 +102,7 @@ impl MaruObject {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.name.to_le_bytes());
         bytes.extend_from_slice(&self.type_name.to_le_bytes());
-        bytes.extend_from_slice(&self.variants.len().to_le_bytes());
+        bytes.extend_from_slice(&(self.variants.len() as u32).to_le_bytes());
         for variant in self.variants {
             bytes.extend_from_slice(&variant.into_binary());
         }
@@ -111,20 +111,24 @@ impl MaruObject {
     }
 
     pub fn from_binary(binary: &[u8]) -> Result<(Self, &[u8]), String> {
-        if binary.len() < 16 {
+        if binary.len() < 12 {
             return Err("Binary is too short to contain a valid MaruObject".to_string());
         }
         let name = u32::from_le_bytes([binary[0], binary[1], binary[2], binary[3]]);
         let type_name = u32::from_le_bytes([binary[4], binary[5], binary[6], binary[7]]);
         let variants_len = u32::from_le_bytes([binary[8], binary[9], binary[10], binary[11]]);
-        let internal = u32::from_le_bytes([binary[12], binary[13], binary[14], binary[15]]);
-        let mut binary = &binary[16..];
+        let mut binary = &binary[12..];
         let mut variants = Vec::new();
         for _ in 0..variants_len {
             let (variant, new_binary) = MaruVariant::from_binary(binary)?;
             variants.push(variant);
             binary = new_binary;
         }
+        if binary.len() < 4 {
+            return Err("Binary is too short to contain a valid MaruObject internal field".to_string());
+        }
+        let internal = u32::from_le_bytes([binary[0], binary[1], binary[2], binary[3]]);
+        let binary = &binary[4..];
         Ok((MaruObject { name, type_name, variants, internal }, binary))
     }
 }
@@ -148,7 +152,7 @@ impl MaruVariant {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.name.to_le_bytes());
         bytes.extend_from_slice(&self.type_name.to_le_bytes());
-        bytes.extend_from_slice(&self.members.len().to_le_bytes());
+        bytes.extend_from_slice(&(self.members.len() as u32).to_le_bytes());
         for (name, type_tag) in self.members {
             bytes.extend_from_slice(&name.to_le_bytes());
             bytes.extend_from_slice(&type_tag.into_binary());
@@ -210,7 +214,7 @@ impl MaruFunction {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.name.to_le_bytes());
         bytes.extend_from_slice(&self.type_name.to_le_bytes());
-        bytes.extend_from_slice(&self.parameters.len().to_le_bytes());
+        bytes.extend_from_slice(&(self.parameters.len() as u32).to_le_bytes());
         for param in self.parameters {
             bytes.extend_from_slice(&param.into_binary());
         }
@@ -221,23 +225,27 @@ impl MaruFunction {
     }
 
     pub fn from_binary(binary: &[u8]) -> Result<(Self, &[u8]), String> {
-        if binary.len() < 16 {
+        if binary.len() < 12 {
             return Err("Binary is too short to contain a valid MaruFunction".to_string());
         }
         let name = u32::from_le_bytes([binary[0], binary[1], binary[2], binary[3]]);
         let type_name = u32::from_le_bytes([binary[4], binary[5], binary[6], binary[7]]);
         let parameters_len = u32::from_le_bytes([binary[8], binary[9], binary[10], binary[11]]);
-        let bytecode_index = i32::from_le_bytes([binary[12], binary[13], binary[14], binary[15]]);
-        let mut binary = &binary[16..];
+        let mut binary = &binary[12..];
         let mut parameters = Vec::new();
         for _ in 0..parameters_len {
             let (param, new_binary) = MaruTypeTag::from_binary(binary)?;
             parameters.push(param);
             binary = new_binary;
         }
+        // Parse return type
         let (return_type, new_binary) = MaruTypeTag::from_binary(binary)?;
-        let variables = u32::from_le_bytes([new_binary[0], new_binary[1], new_binary[2], new_binary[3]]);
-        let binary = &new_binary[4..];
+        if new_binary.len() < 8 {
+            return Err("Binary is too short to contain a valid MaruFunction trailing fields".to_string());
+        }
+        let bytecode_index = i32::from_le_bytes([new_binary[0], new_binary[1], new_binary[2], new_binary[3]]);
+        let variables = u32::from_le_bytes([new_binary[4], new_binary[5], new_binary[6], new_binary[7]]);
+        let binary = &new_binary[8..];
         Ok((MaruFunction { name, type_name, parameters, return_type, bytecode_index, variables }, binary))
     }
 }
@@ -263,13 +271,17 @@ impl MaruGlobal {
     }
 
     pub fn from_binary(binary: &[u8]) -> Result<(Self, &[u8]), String> {
-        if binary.len() < 12 {
+        if binary.len() < 8 {
             return Err("Binary is too short to contain a valid MaruGlobal".to_string());
         }
         let name = u32::from_le_bytes([binary[0], binary[1], binary[2], binary[3]]);
-        let init_index = i32::from_le_bytes([binary[8], binary[9], binary[10], binary[11]]);
         let (type_tag, new_binary) = MaruTypeTag::from_binary(&binary[4..])?;
-        Ok((MaruGlobal { name, type_tag, init_index }, new_binary))
+        if new_binary.len() < 4 {
+            return Err("Binary is too short to contain a valid MaruGlobal init_index".to_string());
+        }
+        let init_index = i32::from_le_bytes([new_binary[0], new_binary[1], new_binary[2], new_binary[3]]);
+        let binary = &new_binary[4..];
+        Ok((MaruGlobal { name, type_tag, init_index }, binary))
     }
 }
 
@@ -283,7 +295,7 @@ pub struct StringTable {
 impl StringTable {
     pub fn into_binary(self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.entries.len().to_le_bytes());
+        bytes.extend_from_slice(&(self.entries.len() as u32).to_le_bytes());
         for entry in self.entries {
             let mut entry_bytes = entry.into_bytes();
             entry_bytes.push(0); // Null-terminate the string
@@ -326,9 +338,9 @@ pub struct BytecodeTable {
 impl BytecodeTable {
     pub fn into_binary(self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.entries.len().to_le_bytes());
+        bytes.extend_from_slice(&(self.entries.len() as u32).to_le_bytes());
         for entry in self.entries {
-            bytes.extend_from_slice(&entry.len().to_le_bytes());
+            bytes.extend_from_slice(&(entry.len() as u32).to_le_bytes());
             bytes.extend_from_slice(&entry);
         }
         bytes
@@ -367,7 +379,7 @@ pub struct LocationsMap {
 impl LocationsMap {
     pub fn into_binary(self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.entries.len().to_le_bytes());
+        bytes.extend_from_slice(&(self.entries.len() as u32).to_le_bytes());
         for entry in self.entries {
             bytes.extend_from_slice(&entry.into_binary());
         }
@@ -408,7 +420,7 @@ impl MaruLocation {
     pub fn into_binary(self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.file.to_le_bytes());
-        bytes.extend_from_slice(&self.locations.len().to_le_bytes());
+        bytes.extend_from_slice(&(self.locations.len() as u32).to_le_bytes());
         for (start, end) in self.locations {
             bytes.extend_from_slice(&start.to_le_bytes());
             bytes.extend_from_slice(&end.to_le_bytes());
@@ -599,19 +611,19 @@ impl MaruFile {
         output.extend_from_slice(&self.module_name.to_le_bytes());
 
         // Write objects
-        output.extend_from_slice(&self.objects.len().to_le_bytes());
+        output.extend_from_slice(&(self.objects.len() as u32).to_le_bytes());
         for obj in self.objects {
             output.extend_from_slice(&obj.into_binary());
         }
 
         // Write functions
-        output.extend_from_slice(&self.functions.len().to_le_bytes());
+        output.extend_from_slice(&(self.functions.len() as u32).to_le_bytes());
         for func in self.functions {
             output.extend_from_slice(&func.into_binary());
         }
 
         // Write globals
-        output.extend_from_slice(&self.globals.len().to_le_bytes());
+        output.extend_from_slice(&(self.globals.len() as u32).to_le_bytes());
         for global in self.globals {
             output.extend_from_slice(&global.into_binary());
         }
@@ -628,3 +640,5 @@ impl MaruFile {
         output
     }
 }
+
+// Tests moved to `tests/roundtrip.rs`
