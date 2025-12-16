@@ -1,7 +1,7 @@
 
 
 
-pub enum LinkerEntry<T> {
+pub enum LinkerEntry<T, S> {
     Entry(T),
-    Hole(Symbol),
+    Hole(S),
 }

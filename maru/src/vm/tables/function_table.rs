@@ -1,6 +1,6 @@
 use std::{cell::UnsafeCell, sync::{Arc, atomic::AtomicUsize}};
 
-use crate::vm::{FunctionPtr, StringSymbol};
+use crate::vm::{FunctionPtr, StringSymbol, VmType};
 
 pub enum GetFunctionResult {
     Ptr(FunctionPtr),

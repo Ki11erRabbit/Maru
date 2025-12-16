@@ -12,6 +12,23 @@ pub type VariantId = u32;
 pub type FunctionSymbol = u32;
 pub type FunctionPtr = extern "C" fn ();
 
+
+pub enum VmType {
+    Unit,
+    Bool,
+    U8,
+    I8,
+    U16,
+    I16,
+    U32,
+    I32,
+    U64,
+    I64,
+    F32,
+    F64,
+    Object(TypeSymbol)
+}
+
 #[repr(C)]
 pub struct Metadata {
     refcount : RefCounter,
