@@ -8,13 +8,15 @@ mod allocator;
 
 pub type StringSymbol = u32;
 pub type TypeSymbol = u32;
+pub type VariantId = u32;
 pub type FunctionSymbol = u32;
 pub type FunctionPtr = extern "C" fn ();
 
 #[repr(C)]
 pub struct Metadata {
     refcount : RefCounter,
-    type_id: u32,
+    type_id: TypeSymbol,
+    variant_id: VariantId,
 }
 
 
