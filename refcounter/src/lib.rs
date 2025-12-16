@@ -34,7 +34,7 @@ impl RefCounter {
         let value = self.fetch_value();
         if value > 0 {
             unsafe {
-                -*self.0.as_ptr();
+                *self.0.as_ptr() = -*self.0.as_ptr();
             }
         }
     }
@@ -50,7 +50,7 @@ impl RefCounter {
         let value = self.fetch_value();
         if value == -1 {
             unsafe {
-                -*self.0.as_ptr();
+                *self.0.as_ptr() = -*self.0.as_ptr();
             }
             true
         } else {
