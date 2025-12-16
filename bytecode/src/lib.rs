@@ -76,6 +76,7 @@ pub enum Instruction {
     ReturnUnit,
     ReturnTailUnit,
     CreateClosure,
+    CreateFnObject,
     Jump,
     If,
     Switch,
@@ -161,11 +162,12 @@ impl From<u8> for Instruction {
             72 => Instruction::ReturnUnit,
             73 => Instruction::ReturnTailUnit,
             74 => Instruction::CreateClosure,
-            75 => Instruction::Jump,
-            76 => Instruction::If,
-            77 => Instruction::Switch,
-            78 => Instruction::Match,
-            79 => Instruction::StartBlock,
+            75 => Instruction::CreateFnObject,
+            76 => Instruction::Jump,
+            77 => Instruction::If,
+            78 => Instruction::Switch,
+            79 => Instruction::Match,
+            80 => Instruction::StartBlock,
             _ => panic!("Invalid instruction value"),
         }
     }
@@ -249,11 +251,12 @@ impl Into<u8> for Instruction {
             Instruction::ReturnUnit => 72,
             Instruction::ReturnTailUnit => 73,
             Instruction::CreateClosure => 74,
-            Instruction::Jump => 75,
-            Instruction::If => 76,
-            Instruction::Switch => 77,
-            Instruction::Match => 78,
-            Instruction::StartBlock => 79,
+            Instruction::CreateFnObject => 75,
+            Instruction::Jump => 76,
+            Instruction::If => 77,
+            Instruction::Switch => 78,
+            Instruction::Match => 79,
+            Instruction::StartBlock => 80,
         }
     }
 }

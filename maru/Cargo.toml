@@ -1,0 +1,7 @@
+[package]
+name = "maru"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+refcounter ={ workspace = true }

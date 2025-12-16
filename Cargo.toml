@@ -1,5 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["bytecode", "maru-file","refcounter"]
+members = ["bytecode", "maru", "maru-file","refcounter"]
 
 [workspace.dependencies]
+bytecode = { path = "bytecode" }
+maru-file = { path = "maru-file" }
+refcounter = { path = "refcounter" }

@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicI32, Ordering};
 
 /// This type allows for doing both synchronized and non-synchronized
 /// reference counting. This is useful when reference counting can be
@@ -12,19 +12,20 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 /// rules. As a result, all operations require being `&mut` to function.
 /// However, this should be acceptable as this type is intended to be
 /// embedded into types that are already a `*mut` so this should be fine.
-pub struct RefCounter(AtomicIsize);
+#[repr(C)]
+pub struct RefCounter(AtomicI32);
 
 
 impl RefCounter {
     
     /// Creates a new `RefCounter` starting with count of 1
     pub fn new() -> RefCounter {
-        RefCounter(AtomicIsize::new(1))
+        RefCounter(AtomicI32::new(1))
     }
     
     /// Creates a new `RefCounter` starting with count of -1
     pub fn new_atomic() -> RefCounter {
-        RefCounter(AtomicIsize::new(-1))
+        RefCounter(AtomicI32::new(-1))
     }
     
     /// Makes a `RefCounter` shared.
@@ -78,7 +79,7 @@ impl RefCounter {
     /// This function is only atomic if the count < 0.
     ///
     /// Returns the new value.
-    pub fn decrement(&mut self) -> isize {
+    pub fn decrement(&mut self) -> i32 {
         let value = self.fetch_value();
         assert_ne!(value, 0, "Decrementing a reference count of zero!");
         if value < 0 {
@@ -98,7 +99,7 @@ impl RefCounter {
     /// Normally this operation should be atomic.
     /// However, since reference counting holds the invariant that we 
     /// won't be zero, this is perfectly safe to do non-atomically.
-    pub fn fetch_value(&mut self) -> isize {
+    pub fn fetch_value(&mut self) -> i32 {
         unsafe {
             *self.0.as_ptr()
         }
