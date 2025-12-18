@@ -1,4 +1,6 @@
-use crate::vm::{Metadata, StringSymbol};
+use std::alloc::Layout;
+
+use crate::vm::{Metadata, StringSymbol, TypeSymbol};
 
 
 
@@ -7,6 +9,7 @@ pub struct ObjectDescription {
     pub type_name: StringSymbol,
     pub size: usize,
     pub variants: Box<[VariantDescription]>,
+    pub layout: Layout,
 }
 
 pub struct VariantDescription {
@@ -18,6 +21,17 @@ pub struct VariantDescription {
     pub packing_offsets: Box<[usize]>,
 }
 
+
+pub struct ObjectDescTable {
+    table: Vec<ObjectDescription>
+}
+
+impl std::ops::Index<TypeSymbol> for ObjectDescTable {
+    type Output = ObjectDescription;
+    fn index(&self, index: TypeSymbol) -> &Self::Output {
+        &self.table[index as usize]
+    }
+}
 
 pub struct Object {
     pub metadata: Metadata,

@@ -31,9 +31,9 @@ pub enum VmType {
 
 #[repr(C)]
 pub struct Metadata {
-    refcount : RefCounter,
-    type_id: TypeSymbol,
-    variant_id: VariantId,
+    pub refcount : RefCounter,
+    pub type_id: TypeSymbol,
+    pub variant_id: VariantId,
 }
 
 
